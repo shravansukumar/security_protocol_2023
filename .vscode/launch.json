@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "InitTerminalApp",
+            "request": "launch",
+            "mainClass": "InitTerminalApp",
+            "projectName": "SmartCard_Project_875f6abb"
+        },
+        {
+            "type": "java",
             "name": "Launch TerminalApp",
             "request": "launch",
             "mainClass": "TerminalApp",

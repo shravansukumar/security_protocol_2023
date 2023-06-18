@@ -2,16 +2,22 @@
 import com.licel.jcardsim.smartcardio.CardSimulator;
 
 import javacard.framework.AID;
-
 import javacard.framework.SystemException;
-import javax.smartcardio.CommandAPDU;
-import javax.smartcardio.ResponseAPDU;
+
+//import javax.smartcardio.CommandAPDU;
+//import javax.smartcardio.ResponseAPDU;
+
+import javax.smartcardio.*;
+
+//import javax.smartcardio.CommandAPDU;
 
 public class InitTerminalApp {
 
     private CardSimulator simulator;
     public TerminalMasterKeyCerts terminalMasterKeyCerts;
     private Utils utils;
+
+    //CertificateBuilder certificateBuilder = new CertificateBuilder();
 
     private State state = State.Init;
 
@@ -125,6 +131,7 @@ public class InitTerminalApp {
         
         switch (state_test) {
             case Init:
+            
             System.out.println("Entered init state");
             initTerminalApp.run();
             initTerminalApp.runApp();
