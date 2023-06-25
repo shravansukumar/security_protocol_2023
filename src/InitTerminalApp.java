@@ -94,8 +94,8 @@ public class InitTerminalApp {
                 // Card PIN, balance, brute_force_counter
                 prepareAndSendData(initTerminal.getBytesForShort(initTerminal.cardPIN), INIT_CARD_PIN);
                 // TODO: ANKIT stash in backend..
-                state = State.POS;
-                runApp();
+                //state = State.POS;
+                //runApp();
                 break;
 
             case POS:
@@ -127,15 +127,17 @@ public class InitTerminalApp {
         // First point of entry
         InitTerminalApp initTerminalApp = new InitTerminalApp();
         POSTerminalApp  posTerminalApp = new POSTerminalApp();
+        KeyGenerator keyGenerator = new KeyGenerator();
         State state_test = State.Init;
         
         switch (state_test) {
             case Init:
-            
             System.out.println("Entered init state");
-            initTerminalApp.run();
-            initTerminalApp.runApp();
-            state_test = State.POS;
+            keyGenerator.generateMasterKeyPair();
+            //initTerminalApp.run();
+            //initTerminalApp.runApp();
+            //state_test = State.POS;
+            
             break;
             
             case POS:
@@ -149,8 +151,8 @@ public class InitTerminalApp {
 
         }
 
-        initTerminalApp.run();
-        initTerminalApp.runApp();
+        //initTerminalApp.run();
+        //initTerminalApp.runApp();
         //terminalApp.sendDummyMessage();
     }
 
