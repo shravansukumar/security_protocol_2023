@@ -50,7 +50,7 @@ public class KeyGenerator {
         }
     }
 
-    public void retreiveMasterKeyPair() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public KeyPair retreiveMasterKeyPair() throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
 
             // Read contents from PEM file
             byte [] publicKeyPEMContentsBytes = Files.readAllBytes(Paths.get(publicKeyFilePath));
@@ -86,13 +86,15 @@ public class KeyGenerator {
 
             System.out.println(mastKeyPair);
 
-        try {
-            generateMasterKeyPair();
-        } catch (NoSuchAlgorithmException exception) {
-            System.out.println("Used wrong algo for generating master key pair");
-            System.out.println(exception.getMessage());
-            System.exit(-2);
-        }
+            return mastKeyPair;
+
+        // try {
+        //     generateMasterKeyPair();
+        // } catch (NoSuchAlgorithmException exception) {
+        //     System.out.println("Used wrong algo for generating master key pair");
+        //     System.out.println(exception.getMessage());
+        //     System.exit(-2);
+        // }
 
     }
 

@@ -8,6 +8,8 @@ import org.bouncycastle.cert.*;
 import org.bouncycastle.cert.jcajce.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.jcajce.*;
+import org.bouncycastle.operator.ContentSigner;
+
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -17,7 +19,7 @@ import java.util.Date;
 
 public class CertificateBuilder {
 
-    public byte[] generateCert(RSAPublicKey publicKey, RSAPrivateKey privateKey, String cardHolderName, String cardNumber)
+    public byte[] generateCert(RSAPublicKey publicKey, RSAPrivateKey privateKey, String cardNumber)
             throws IOException, NoSuchAlgorithmException, OperatorCreationException, CertificateException {
 
         BigInteger serialNumber = BigInteger.valueOf(System.currentTimeMillis());
@@ -47,15 +49,35 @@ public class CertificateBuilder {
         cardNameValues.add(new DERUTF8String(cardNumber));
         ASN1Set cardNameSet = new DERSet(cardNameValues);
 
-        Extension cardNumberExtension = Extension.create(new ASN1ObjectIdentifier("card_number"), false,
-                new DEROctetString(cardNumberSet.getEncoded()));
-        Extension cardNameExtension = Extension.create(new ASN1ObjectIdentifier("card_name"), false,
-                new DEROctetString(cardNameSet.getEncoded()));
+       // Extension cardNumberExtension = Extension.create(new ASN1ObjectIdentifier("card_number"), false,
+                //new DEROctetString(cardNumberSet.getEncoded()));
+        //Extension cardNameExtension = Extension.create(new ASN1ObjectIdentifier("card_name"), false,
+                //new DEROctetString(cardNameSet.getEncoded()));
 
-        certBuilder.addExtension(cardNumberExtension);
-        certBuilder.addExtension(cardNameExtension);
+        
 
-        ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").build(privateKey);
+
+        ASN1ObjectIdentifier cardNumberOid = new ASN1ObjectIdentifier("1.2.3.4.5"); // Custom OID for card_number
+        ASN1EncodableVector cardNumberValuesTry = new ASN1EncodableVector();
+        cardNumberValuesTry.add(new DERPrintableString("1234567"));
+        ASN1Set cardNumberSetTry = new DERSet(cardNumberValuesTry);
+
+        // Create the attribute extension
+        Extension cardNumberExtensionTry = new Extension(cardNumberOid, false, cardNumberSetTry.getEncoded());
+
+        // Add the extension to the certificate builder
+        certBuilder.addExtension(cardNumberExtensionTry);
+
+
+
+
+
+
+
+       // certBuilder.addExtension(cardNumberExtension);
+       // certBuilder.addExtension(cardNameExtension);
+
+        ContentSigner signer = new JcaContentSignerBuilder("SHA1withRSA").setProvider("BC").build(privateKey);
         X509CertificateHolder certificateHolder = certBuilder.build(signer);
         X509Certificate certificate = new JcaX509CertificateConverter().getCertificate(certificateHolder);
 

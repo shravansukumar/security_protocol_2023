@@ -4,10 +4,17 @@ import com.licel.jcardsim.smartcardio.CardSimulator;
 import javacard.framework.AID;
 import javacard.framework.SystemException;
 
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+
 //import javax.smartcardio.CommandAPDU;
 //import javax.smartcardio.ResponseAPDU;
 
 import javax.smartcardio.*;
+
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
 
 //import javax.smartcardio.CommandAPDU;
 
@@ -128,15 +135,29 @@ public class InitTerminalApp {
         InitTerminalApp initTerminalApp = new InitTerminalApp();
         POSTerminalApp  posTerminalApp = new POSTerminalApp();
         KeyGenerator keyGenerator = new KeyGenerator();
+        CertificateBuilder certificateBuilder = new CertificateBuilder();
+        CertificateBuilderPure certificateBuilderPure = new CertificateBuilderPure();
         State state_test = State.Init;
         
         switch (state_test) {
             case Init:
             System.out.println("Entered init state");
-            keyGenerator.generateMasterKeyPair();
+            KeyPair mastKeyPair = keyGenerator.retreiveMasterKeyPair();
+            RSAPrivateKey masterPrivateKey = (RSAPrivateKey) mastKeyPair.getPrivate();
+            RSAPublicKey masterPublicKey = (RSAPublicKey) mastKeyPair.getPublic();
+
             //initTerminalApp.run();
             //initTerminalApp.runApp();
             //state_test = State.POS;
+            try {
+            //    byte [] masterCert = certificateBuilder.generateCert(masterPublicKey, masterPrivateKey, "1234567");
+                byte [] masterCert = certificateBuilderPure.generateCertificate(masterPublicKey, masterPrivateKey, "12345");
+
+               System.out.println(masterCert);
+            } catch (IOException e) {
+                System.out.println(e.getMessage());
+            }
+            
             
             break;
             
