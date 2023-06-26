@@ -18,15 +18,15 @@ public class KeyGenerator {
 
 
     public void generateMasterKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-            generator.initialize(512);
-            KeyPair keypair = generator.generateKeyPair();
-            saveMasterKeyPair(keypair);
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+        generator.initialize(256);
+        KeyPair keypair = generator.generateKeyPair();
+        saveMasterKeyPair(keypair);
     }
 
     private void saveMasterKeyPair(KeyPair keypair) {
-        RSAPublicKey publicKey = (RSAPublicKey) keypair.getPublic();
-        RSAPrivateKey privateKey = (RSAPrivateKey) keypair.getPrivate();
+        ECPublicKey publicKey = (ECPublicKey) keypair.getPublic();
+        ECPrivateKey privateKey = (ECPrivateKey) keypair.getPrivate();
 
         // We get the encoded keys in string for base 64
         String encodedPublicKeyString = Base64.toBase64String(publicKey.getEncoded());
@@ -74,17 +74,15 @@ public class KeyGenerator {
             byte [] publicKeyDecoded = Base64.decode(publicKeyEncodedKey);
             byte [] privateKeyDecoded = Base64.decode(privateKeyEncodedKey);
 
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
 
             X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyDecoded);
-            RSAPublicKey masterPublicKey = (RSAPublicKey) keyFactory.generatePublic(publicKeySpec);
+            ECPublicKey masterPublicKey = (ECPublicKey) keyFactory.generatePublic(publicKeySpec);
 
             PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyDecoded);
-            RSAPrivateKey masterPrivateKey = (RSAPrivateKey) keyFactory.generatePrivate(privateKeySpec);
+            ECPrivateKey masterPrivateKey = (ECPrivateKey) keyFactory.generatePrivate(privateKeySpec);
 
             KeyPair mastKeyPair = new KeyPair(masterPublicKey, masterPrivateKey);
-
-            System.out.println(mastKeyPair);
 
             return mastKeyPair;
 
@@ -98,19 +96,21 @@ public class KeyGenerator {
 
     }
 
+    public KeyPair getKeyPairForCard() throws NoSuchAlgorithmException {
+            KeyPairGenerator generator = KeyPairGenerator.getInstance("EC");
+            generator.initialize(256);
+            KeyPair keypair = generator.generateKeyPair();
+            return keypair;
+    }
 
     public KeyPair getKeyPair() throws Exception, NoSuchAlgorithmException {
             KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-            generator.initialize(512);
+            generator.initialize(256);
             KeyPair keypair = generator.generateKeyPair();
             RSAPublicKey publicKey = (RSAPublicKey)keypair.getPublic();
             RSAPrivateKey privateKey = (RSAPrivateKey)keypair.getPrivate();
-            printStuff(publicKey);
-            printStuff(privateKey);
         return keypair;
     }
 
-    private void printStuff(Key key) {
-        System.out.println(key);
-    }
+
 }

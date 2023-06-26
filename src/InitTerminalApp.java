@@ -3,167 +3,102 @@ import com.licel.jcardsim.smartcardio.CardSimulator;
 
 import javacard.framework.AID;
 import javacard.framework.SystemException;
-
 import java.io.IOException;
+import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
-
-//import javax.smartcardio.CommandAPDU;
-//import javax.smartcardio.ResponseAPDU;
-
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
 import javax.smartcardio.*;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 
-import java.security.interfaces.RSAPrivateKey;
-import java.security.interfaces.RSAPublicKey;
-
-//import javax.smartcardio.CommandAPDU;
 
 public class InitTerminalApp {
 
     private CardSimulator simulator;
     public TerminalMasterKeyCerts terminalMasterKeyCerts;
-    private Utils utils;
 
-    //CertificateBuilder certificateBuilder = new CertificateBuilder();
+    private CertificateBuilderPure certificateBuilderPure;
+    private KeyGenerator keyGenerator;
+    private byte [] masterCert;
+    private byte [] cardCert;
+    KeyPair mastKeyPair;
+    KeyPair cardKeyPair;
 
     private State state = State.Init;
 
     private static final byte DUMMY = (byte) 0x52;
-
-    // INIT stuff
-    private static final byte INIT_PUB_EXP = (byte) 0x10;
-    private static final byte INIT_PUB_MOD = (byte) 0x11;
-    private static final byte INIT_PRV_EXP = (byte) 0x12;
-    private static final byte INIT_PRV_MOD = (byte) 0x13;
-    private static final byte INIT_CARD_NUMBER = (byte) 0x14;
-    private static final byte INIT_CARD_EXPIRY = (byte) 0x15;
-    private static final byte INIT_CARD_TAG = (byte) 0x16;
-    private static final byte INIT_MASTER_TERMINAL_TAG = (byte) 0x17;
-    private static final byte INIT_CARD_PIN = (byte) 0x18;
-    private static final byte INIT_MASTER_PUB_EXP = (byte) 0x80;
-    private static final byte INIT_MASTER_PUB_MOD = (byte) 0x81;
-
-    // Mutual auth stuff
-    private static final byte MUTUAL_AUTH_RN = (byte) 0x19;
-    private static final byte MUTUAL_AUTH_TERMINAL_TAG = (byte) 0x20;
-    private static final byte MUTUAL_AUTH_TERMINAL_CERT_VALUES = (byte) 0x24;
-    private static final byte MUTUAL_AUTH_TERMINAL_PUBLIC_KEY_EXPONENT = (byte) 0x21; 
-    private static final byte MUTUAL_AUTH_TERMINAL_PUBLIC_KEY_MODULO = (byte) 0x22;  
-     
-
+    
+    // INIT Terminal stuff
+    private static final byte INIT_MASTER_CERT = (byte) 0x23;
 
     final static byte[] pin = {'1', '2', '3', '4'}; 
     static final byte[] APPLET_AID = { (byte) 0x3B, (byte) 0x29,
         (byte) 0x63, (byte) 0x61, (byte) 0x6C, (byte) 0x63, (byte) 0x01 };
 
     public InitTerminalApp() {
-        terminalMasterKeyCerts = TerminalMasterKeyCerts.getInstance();
-        utils = new Utils();
+        certificateBuilderPure = new CertificateBuilderPure();
+        keyGenerator = new KeyGenerator();
     }
 
-    private void runApp() {
-        switch (state) {
-            case Init:
-                InitTerminal initTerminal = new InitTerminal();
-                initTerminal.generateKeyPairForCard();
-                initTerminal.generateCardCerts();
 
-                //Master public key exponent
-                prepareAndSendData(terminalMasterKeyCerts.getTerminalMasterPublicKeyExponent(), INIT_MASTER_PUB_EXP);
-                
-                //Master public key modulus
-                prepareAndSendData(terminalMasterKeyCerts.getTerminalMasterPublicKeyModulus(), INIT_MASTER_PUB_MOD);
+    // Function to prepare data for sending it to the card
+    private void prepareAndtransmitDataToCard() {
+        try {
+         //   keyGenerator.generateMasterKeyPair();
 
-                //Master tag
-                prepareAndSendData(terminalMasterKeyCerts.masterTag, INIT_MASTER_TERMINAL_TAG);
+            this.mastKeyPair = keyGenerator.retreiveMasterKeyPair();
+            this.cardKeyPair = keyGenerator.getKeyPairForCard();
 
-                //Card public key exponent
-                prepareAndSendData(initTerminal.getCardPublicKeyExponent(), INIT_PUB_EXP);
+            ECPrivateKey masterPrivateKey = (ECPrivateKey) mastKeyPair.getPrivate();
+            ECPublicKey masterPublicKey = (ECPublicKey) mastKeyPair.getPublic();
 
-                //Card Public key modulo
-                prepareAndSendData(initTerminal.getCardPublicKeyModulo(), INIT_PUB_MOD); 
+            this.masterCert = certificateBuilderPure.generateCertificate(masterPublicKey, masterPrivateKey, "12345", "MASTER");
+         //   this.cardCert = certificateBuilderPure.generateCertificate((ECPublicKey)cardKeyPair.getPublic(), masterPrivateKey, "12345", "CARD");
 
-                //Card Private key exponent
-                prepareAndSendData(initTerminal.getCardPrivateKeyExponent(), INIT_PRV_EXP);
+        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException |  InvalidKeyException | NoSuchProviderException | SignatureException | CertificateException | NullPointerException e) {
+            System.out.println(e.getMessage());
+            System.exit(-1);
+        }
+    }
 
-                //Card Private key modulo
-                prepareAndSendData(initTerminal.getCardPrivateKeyModulo(), INIT_PRV_MOD);
+    private void runInitTermainalApp() {
+        prepareAndtransmitDataToCard();
 
-                //Card Number
-                prepareAndSendData(initTerminal.getBytesForShort(initTerminal.cardNumber), INIT_CARD_NUMBER);
+        int offset = 0;
+        int length = masterCert.length;
+        int maxPayloadSize = 255;
 
-                // Card Expiry
-                prepareAndSendData(initTerminal.getBytesForShort(initTerminal.cardExpiry), INIT_CARD_EXPIRY);
-
-                // Card tag
-                prepareAndSendData(initTerminal.cardTag, INIT_CARD_TAG);
-
-                // Card PIN, balance, brute_force_counter
-                prepareAndSendData(initTerminal.getBytesForShort(initTerminal.cardPIN), INIT_CARD_PIN);
-                // TODO: ANKIT stash in backend..
-                //state = State.POS;
-                //runApp();
-                break;
-
-            case POS:
-                MutualAuthenticator mutualAuthenticator = new MutualAuthenticator();
-
-                // Random Number 1
-                short randomNumber = mutualAuthenticator.generateRandomNumber();
-                prepareAndSendData(utils.getBytesForShort(randomNumber), MUTUAL_AUTH_RN);
-
-                // Terminal Tag // TODO:Remove terminal tag from the singleton class
-                prepareAndSendData(terminalMasterKeyCerts.terminalTag, MUTUAL_AUTH_TERMINAL_TAG);
-
-                // Terminal public key exponent
-                prepareAndSendData(terminalMasterKeyCerts.getTerminalPublicKeyExponent(), MUTUAL_AUTH_TERMINAL_PUBLIC_KEY_EXPONENT);
-
-                // Terminal public key modulo
-                prepareAndSendData(terminalMasterKeyCerts.getTerminalPublicModulo(), MUTUAL_AUTH_TERMINAL_PUBLIC_KEY_MODULO);
-
-                // Terminal values to be signed
-                prepareAndSendData(terminalMasterKeyCerts.terminalValuesToBeSigned, MUTUAL_AUTH_TERMINAL_CERT_VALUES);
-                break;
-                
-            case Other:
-                break;
+        while (length > 0) {
+            int chunkSize = Math.min(length, maxPayloadSize);
+            byte [] tempArray = Arrays.copyOfRange(masterCert, offset, offset+chunkSize);
+            // send stuff 
+            prepareAndSendData(tempArray, INIT_MASTER_CERT);
+            offset += chunkSize;
+            length -= chunkSize;
         }
     }
 
     public static void main(String[] args) throws Exception {
         // First point of entry
         InitTerminalApp initTerminalApp = new InitTerminalApp();
-        POSTerminalApp  posTerminalApp = new POSTerminalApp();
-        KeyGenerator keyGenerator = new KeyGenerator();
-        CertificateBuilder certificateBuilder = new CertificateBuilder();
-        CertificateBuilderPure certificateBuilderPure = new CertificateBuilderPure();
+       // POSTerminalApp  posTerminalApp = new POSTerminalApp();
         State state_test = State.Init;
         
         switch (state_test) {
             case Init:
             System.out.println("Entered init state");
-            KeyPair mastKeyPair = keyGenerator.retreiveMasterKeyPair();
-            RSAPrivateKey masterPrivateKey = (RSAPrivateKey) mastKeyPair.getPrivate();
-            RSAPublicKey masterPublicKey = (RSAPublicKey) mastKeyPair.getPublic();
-
-            //initTerminalApp.run();
-            //initTerminalApp.runApp();
-            //state_test = State.POS;
-            try {
-            //    byte [] masterCert = certificateBuilder.generateCert(masterPublicKey, masterPrivateKey, "1234567");
-                byte [] masterCert = certificateBuilderPure.generateCertificate(masterPublicKey, masterPrivateKey, "12345");
-
-               System.out.println(masterCert);
-            } catch (IOException e) {
-                System.out.println(e.getMessage());
-            }
-            
-            
+            initTerminalApp.run();
+            initTerminalApp.runInitTermainalApp(); 
             break;
             
             case POS:
-            System.out.println("Entered Reload state"); 
-            posTerminalApp.run();
+            System.out.println("Entered POS state"); 
+            //posTerminalApp.run();
             break;
 
             default:
@@ -171,10 +106,6 @@ public class InitTerminalApp {
             break;
 
         }
-
-        //initTerminalApp.run();
-        //initTerminalApp.runApp();
-        //terminalApp.sendDummyMessage();
     }
 
     private void run() {
@@ -194,23 +125,21 @@ public class InitTerminalApp {
         CommandAPDU initCommand = new CommandAPDU(0, commandType, 0, 0, data);
         ResponseAPDU initResponse = transmit(initCommand);
         System.out.println(initResponse);
+
     }
 
     private ResponseAPDU transmit(CommandAPDU commandAPDU) {
         System.out.println("Terminal: Sending Command");
         ResponseAPDU response = simulator.transmitCommand(commandAPDU);
+       // processDummyMessage(response);
         return response;
+    }
+
+
+    private void processDummyMessage(ResponseAPDU response) {
+        byte [] responseData = response.getData();
+        String repsString = new String(responseData);
+        System.out.println(repsString);
     }
 }
 
-    // private void encryptWith(Key keyToBeUsed, int operation) {
-    //     try {
-    //         Cipher rsaCipher = Cipher.getInstance("RSA");
-    //         rsaCipher.init(operation, masterPrivateKey);
-    //         byte [] encryptedMessage = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_DESELECT);
-    //         //rsaCipher.doFinal(input, inputOffset, inputLen, output, outputOffset);
-    //     } catch (NoSuchAlgorithmException |  NoSuchPaddingException | InvalidKeyException e) {
-    //         System.out.println(e.getMessage());
-    //         System.exit(-1);
-    //     }
-    // }
