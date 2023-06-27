@@ -1,12 +1,9 @@
 import java.nio.charset.StandardCharsets;
-import javacard.security.RandomData;
-import javacard.security.Signature;
 
 import javax.print.attribute.standard.MediaSize.ISO;
 import javax.smartcardio.CommandAPDU;
 
 import javacard.framework.*;
-import javacard.framework.Applet;
 import javacard.security.*;
 import javacardx.crypto.*;
 
@@ -73,6 +70,11 @@ public class CardApplet extends Applet {
     private static final byte MUTUAL_AUTH_TERMINAL_PUBLIC_KEY_MODULO = (byte) 0x22;  
     private static final byte MUTUAL_AUTH_TERMINAL_CERT_VALUES = (byte) 0x24;
 
+
+
+    // Init terminal stuff
+    private static final byte INIT_MASTER_CERT = (byte) 0x23;
+
     protected CardApplet() {
         register();
 
@@ -117,6 +119,13 @@ public class CardApplet extends Applet {
         try {
             switch (apduBuffer[ISO7816.OFFSET_INS]) {
                 case DUMMY:
+                byte [] helloBack = "hello".getBytes();
+                apdu.setOutgoingAndSend((short) 0, (short) helloBack.length);
+                System.out.println("Hello from dummy message");
+                break;
+
+                case INIT_MASTER_CERT:
+                System.out.println("Got the master cert");
                 break;
 
                 case INIT_MASTER_PUB_EXP:
